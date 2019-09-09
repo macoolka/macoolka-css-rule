@@ -1,0 +1,30 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`css print print 1`] = `
+"color: red;
+margin-top: 12px;
+margin-left: 1px;
+$:hover {
+  color: green;
+  margin-top: 20px;
+  margin-left: 21px;
+}
+$:focus {
+  color: blue;
+  margin-top: 2px;
+  margin-left: 3px;
+}
+@media screen and (max-width: 120em) {
+  $:hover {
+    color: red;
+    margin-top: 20px;
+    margin-left: 21px;
+  }
+  $:focus {
+    color: blue;
+    margin-top: 2px;
+    margin-left: 3px;
+  }
+}
+"
+`;
