@@ -137,3 +137,4 @@ const _printNodeToString = <T extends object>(i: number = 0) =>(a:PrintNode<T>):
  * @since 0.2.0
  */
 export const printNodeToString = _printNodeToString(0);
+export default printNodeToString

@@ -24,7 +24,7 @@ export {
 
 };
 import { getFold, getMonoid, merge } from 'macoolka-object'
-import {NonEmptyArray} from 'macoolka-typescript'
+import { NonEmptyArray } from 'macoolka-typescript'
 /**
  * Properties is css properties's type
  * @type
@@ -35,48 +35,48 @@ import {NonEmptyArray} from 'macoolka-typescript'
  * 得到Rule中的属性类型.Input<E & S, O>
  * @since 0.2.0
  */
-export type GetRuleProp<R extends Rule> = NonNullable<R['_P']>
+export type GetRuleProp<R extends AnyRule> = NonNullable<R['_P']>
 /**
  * Get Theme type from Rule.
  * @desczh
  * 得到Rule中的Theme类型.
  * @since 0.2.0
  */
-export type GetRuleTheme<R extends Rule> = NonNullable<R['_T']>
+export type GetRuleTheme<R extends AnyRule> = NonNullable<R['_T']>
 /**
  * Get Self Theme type from Rule.
  * @desczh
  * 得到Rule中的本身Theme类型.
  * @since 0.2.0
  */
-export type GetRuleSTheme<R extends Rule> = NonNullable<R['_ST']>
+export type GetRuleSTheme<R extends AnyRule> = NonNullable<R['_ST']>
 /**
  * Get Parent Theme type from Rule.
  * @desczh
  * 得到Rule中的父Theme类型.
  * @since 0.2.0
  */
-export type GetRuleOTheme<R extends Rule> = NonNullable<R['_OT']>
+export type GetRuleOTheme<R extends AnyRule> = NonNullable<R['_OT']>
 /**
  * Get input type from Rule.E & S
  * @desczh
  * 得到Rule中的输入属性.E & S
  * @since 0.2.0
  */
-export type GetRuleInput<R extends Rule> = NonNullable<R['_I']>
+export type GetRuleInput<R extends AnyRule> = NonNullable<R['_I']>
 /**
  * Get output type from Rule.
  * @desczh
  * 得到Rule中的输出类型.
  * @since 0.2.0
  */
-export type GetRuleOutput<R extends Rule> = NonNullable<R['_O']>
+export type GetRuleOutput<R extends AnyRule> = NonNullable<R['_O']>
 
 
 /**
  * @.2.0
  */
-export type ExtendRule<R extends Rule,
+export type ExtendRule<R extends AnyRule,
     S extends CssProperties,
     E extends object = {},
     T extends CssTheme = {}> =
@@ -108,29 +108,30 @@ export type Rule<
         /**
          * stand rule
          */
-        rule?: StandRule<S, O, T>,
+        rule?: StandRule<S, O, OT & T>,
         /**
          * enum rule
          */
-        ruleEnum?: EnumRule<E, O, T>,
+        ruleEnum?: EnumRule<E, O, OT & T>,
         /**
          * default style
          */
         style?: CssNode<O>
     };
-
+export type AnyRule = Rule<any, any, any, any, any>
 const ruleToStandRule = <
     S extends object = {},
     E extends object = {},
     O extends object = {},
-    T extends object = {}>() =>
-    (rule: Rule<S, E, O, T>): StandRule<S & E, O, T> => {
-        const b = O.fromNullable(rule.rule) as any as O.Option<StandRule<S & E, O, T>>;
+    T extends object = {},
+    OT extends object = {}>() =>
+    (rule: Rule<S, E, O, T, OT>): StandRule<S & E, O, T & OT> => {
+        const b = O.fromNullable(rule.rule) as any as O.Option<StandRule<S & E, O, T & OT>>;
         const a = pipe(
             O.fromNullable(rule.ruleEnum),
             O.map(a => enumRuleToStandRule(a))
-        ) as any as O.Option<StandRule<S & E, O, T>>
-        const m = getMonoid<StandRule<S & E, O, T>>();
+        ) as any as O.Option<StandRule<S & E, O, T & OT>>
+        const m = getMonoid<StandRule<S & E, O, T & OT>>();
         return pipe(
             O.getMonoid(m).concat(a, b),
             O.getOrElse(() => m.empty
@@ -147,7 +148,7 @@ const ruleToStandRule = <
  * 解析的顺序是 规则>父规则
  * @since 0.2.0
  */
-export interface RuleModule<R extends Rule = Rule, N extends Rule = Rule, T extends CssTheme = GetRuleTheme<R>> {
+export type RuleModule<R extends AnyRule = AnyRule, N extends AnyRule = AnyRule, T extends CssTheme = GetRuleTheme<R>>= {
     theme: T,
     rule: R
     next?: RuleModule<N>
@@ -160,8 +161,8 @@ export interface RuleModule<R extends Rule = Rule, N extends Rule = Rule, T exte
  */
 
 export interface ExtendRuleModule {
-    <RA extends Rule>(n: RuleModule<RA>):
-    <RB extends Rule>(b: RuleModule<RB, never, GetRuleSTheme<RB>>) => RuleModule<RB>
+    <RA extends AnyRule>(n: RuleModule<RA>):
+        <RB extends AnyRule>(b: RuleModule<RB, never, GetRuleSTheme<RB>>) => RuleModule<RB>
 }
 /**
  * 
@@ -172,7 +173,7 @@ export const extendRuleModule: ExtendRuleModule = a => b => ({
     theme: {
         ...a.theme,
         ...b.theme,
-    } ,
+    },
     next: a
 })
 /**
@@ -181,14 +182,15 @@ export const extendRuleModule: ExtendRuleModule = a => b => ({
  * 合并以同一个RuleModule为基础的RuleModule数组到RuleModule
  * @since 0.2.0
  */
-export const foldRuleModule=<R extends Rule = Rule>()=><N extends Rule>(as:NonEmptyArray<RuleModule<any,N>>):RuleModule<R,N>=>{
-   const folds= getFold()(as)
-   return{
-       rule:folds.rule,
-       theme:folds.theme,
-       next:as[0].next
-   }
-}
+export const foldRuleModule = <R extends AnyRule = AnyRule>() =>
+    <N extends AnyRule>(as: NonEmptyArray<RuleModule<AnyRule, N>>): RuleModule<R, N> => {
+        const folds = getFold()(as)
+        return {
+            rule: folds.rule,
+            theme: folds.theme,
+            next: as[0].next
+        }
+    }
 /**
  * Parse RuleModule to ThemeNode
  * @desczh
@@ -197,7 +199,7 @@ export const foldRuleModule=<R extends Rule = Rule>()=><N extends Rule>(as:NonEm
  * @since 0.2.0
  */
 export interface ParseRule {
-    <R extends Rule = Rule>(input: RuleModule<R>):
+    <R extends AnyRule = AnyRule>(input: RuleModule<R>):
         (value: ThemeNode<Input<GetRuleInput<R>, GetRuleOutput<R>>, GetRuleTheme<R>>)
             => ThemeNode<GetRuleOutput<R>, GetRuleTheme<R>>
 }
@@ -233,7 +235,7 @@ export const parseRule: ParseRule = ({ rule, theme = {}, next }) => (value) => {
  * @since 0.2.0
  */
 export type ParseProp =
-    <R extends Rule>(rules: RuleModule<R>) =>
+    <R extends AnyRule>(rules: RuleModule<R>) =>
         (value: CssThemeNode<GetRuleProp<R>, GetRuleTheme<R>>) => GetRuleOutput<R>
 
 /**
@@ -256,7 +258,7 @@ export const parseProp: ParseProp = rule => value => pipe(
  * @since 0.2.0
  */
 export type ParseString =
-    <R extends Rule>(rules: RuleModule<R>) =>
+    <R extends AnyRule>(rules: RuleModule<R>) =>
         (value: CssThemeNode<Input<GetRuleInput<R>, GetRuleOutput<R>>, GetRuleTheme<R>>) => string
 
 /**
