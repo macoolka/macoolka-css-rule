@@ -24,7 +24,6 @@ export {
 
 };
 import { getFold, getMonoid, merge } from 'macoolka-object'
-import { NonEmptyArray } from 'macoolka-typescript'
 /**
  * Properties is css properties's type
  * @type
@@ -35,43 +34,50 @@ import { NonEmptyArray } from 'macoolka-typescript'
  * 得到Rule中的属性类型.Input<E & S, O>
  * @since 0.2.0
  */
-export type GetRuleProp<R extends AnyRule> = NonNullable<R['_P']>
+export type GetRuleProp<R extends Rule|RuleModule> = Required<R>['_P'] 
 /**
  * Get Theme type from Rule.
  * @desczh
  * 得到Rule中的Theme类型.
  * @since 0.2.0
  */
-export type GetRuleTheme<R extends AnyRule> = NonNullable<R['_T']>
+export type GetRuleTheme<R extends Rule|RuleModule> = Required<R>['_T'] 
 /**
  * Get Self Theme type from Rule.
  * @desczh
  * 得到Rule中的本身Theme类型.
  * @since 0.2.0
  */
-export type GetRuleSTheme<R extends AnyRule> = NonNullable<R['_ST']>
+export type GetRuleSTheme<R extends Rule|RuleModule> =  Required<R>['_ST'] 
 /**
  * Get Parent Theme type from Rule.
  * @desczh
  * 得到Rule中的父Theme类型.
  * @since 0.2.0
  */
-export type GetRuleOTheme<R extends AnyRule> = NonNullable<R['_OT']>
+export type GetRuleOTheme<R extends Rule|RuleModule> =Required<R>['_OT']
 /**
  * Get input type from Rule.E & S
  * @desczh
  * 得到Rule中的输入属性.E & S
  * @since 0.2.0
  */
-export type GetRuleInput<R extends AnyRule> = NonNullable<R['_I']>
+export type GetRuleInput<R extends Rule|RuleModule> = Required<R>['_I']
 /**
  * Get output type from Rule.
  * @desczh
  * 得到Rule中的输出类型.
  * @since 0.2.0
  */
-export type GetRuleOutput<R extends AnyRule> = NonNullable<R['_O']>
-
+export type GetRuleOutput<R extends Rule|RuleModule> = Required<R>['_O']
+//<R extends Rule<infer S,infer E,infer O,infer T,infer OT>
+export type GetRuleInfer<R> = {
+    S: R extends Rule<infer U, any> ? U : any
+    E: R extends Rule<any, infer U> ? U : any
+    O: R extends Rule<any, any, infer U> ? U : any
+    T: R extends Rule<any, any, any, infer U> ? U : any
+    OT: R extends Rule<any, any, any, any, infer U> ? U : any
+}
 
 /**
  * @.2.0
@@ -97,14 +103,14 @@ export type Rule<
     O extends object = {},
     T extends object = {},
     OT extends object = {},> = {
-        readonly _E?: E
-        readonly _S?: S
-        readonly _I?: E & S
-        readonly _ST?: T
-        readonly _T?: OT & T
-        readonly _OT?: OT
-        readonly _O?: O
-        readonly _P?: Input<E & S, O>
+             readonly _E?: E
+             readonly _S?: S
+             readonly _I?: E & S
+             readonly _ST?: T
+             readonly _T?: OT & T
+             readonly _OT?: OT
+             readonly _O?: O
+             readonly _P?: Input<E & S, O> 
         /**
          * stand rule
          */
@@ -139,6 +145,45 @@ const ruleToStandRule = <
         )
 
     };
+export type RuleModule<
+    S extends object = {},
+    E extends object = {},
+    O extends object = {},
+    T extends object = {},
+    OT extends object = {},
+
+    > = {
+        readonly _E?: E
+        readonly _S?: S
+        readonly _I?: E & S
+        readonly _ST?: T
+        readonly _T?: OT & T
+        readonly _OT?: OT
+        readonly _O?: O
+        readonly _P?: Input<E & S, O> 
+        theme: OT & T,
+        rule: Rule<S, E, O, T, OT>
+        next?: RuleModule<any, any, any, any, any>
+    }
+/**
+ * Rule Module include a rule and default theme and next RuleModule.
+ * The Parse order is rule > next
+ * @desczh
+ * Rule Module 包含一个规则和缺省的Theme以及父规则
+ * 解析的顺序是 规则>父规则
+ * @since 0.2.0
+ */
+export type ERuleModule<
+    S extends object = {},
+    E extends object = {},
+    O extends object = {},
+    T extends object = {},
+    OT extends object = {},
+    SB extends object = {},
+    EB extends object = {},
+    TB extends object = {},
+
+    > = RuleModule<SB, EB, O & E & S, TB, OT & T>
 
 /**
  * Rule Module include a rule and default theme and next RuleModule.
@@ -148,11 +193,17 @@ const ruleToStandRule = <
  * 解析的顺序是 规则>父规则
  * @since 0.2.0
  */
-export type RuleModule<R extends AnyRule = AnyRule, N extends AnyRule = AnyRule, T extends CssTheme = GetRuleTheme<R>>= {
-    theme: T,
-    rule: R
-    next?: RuleModule<N>
-}
+export type InputRuleModule<
+    S extends object = {},
+    E extends object = {},
+    O extends object = {},
+    T extends object = {},
+    OT extends object = {}> = {
+        theme: T
+        rule: Rule<S, E, O, T, OT>
+
+    }
+
 /**
  * Build a RuleModule From other RuleModule
  * @desczh
@@ -161,8 +212,18 @@ export type RuleModule<R extends AnyRule = AnyRule, N extends AnyRule = AnyRule,
  */
 
 export interface ExtendRuleModule {
-    <RA extends AnyRule>(n: RuleModule<RA>):
-        <RB extends AnyRule>(b: RuleModule<RB, never, GetRuleSTheme<RB>>) => RuleModule<RB>
+    <
+        S extends object = {},
+        E extends object = {},
+        O extends object = {},
+        T extends object = {},
+        OT extends object = {}>(n: RuleModule<S, E, O, T, OT>):
+        <
+            SB extends object = {},
+            EB extends object = {},
+            TB extends object = {},
+            >(b: InputRuleModule<SB, EB, O & E & S, TB, OT & T>) =>
+            ERuleModule<S, E, O, T, OT, SB, EB, TB>
 }
 /**
  * 
@@ -176,21 +237,42 @@ export const extendRuleModule: ExtendRuleModule = a => b => ({
     },
     next: a
 })
+
+/**
+ * Build a RuleModule From other RuleModule
+ * @desczh
+ * 以一个RuleModule为基础，建立新的RuleModule
+ * @.2.0
+ */
+
+export interface ExtendRuleModules {
+    <
+        S extends object = {},
+        E extends object = {},
+        O extends object = {},
+        T extends object = {},
+        OT extends object = {}>(n: RuleModule<S, E, O, T, OT>):
+        <
+            SB extends object = {},
+            EB extends object = {},
+            TB extends object = {},
+            >(b: Array<RuleModule>) =>
+            ERuleModule<S, E, O, T, OT, SB, EB, TB>
+}
 /**
  * Fold some RuleModule that extend same RuleModule
  * @desczh
  * 合并以同一个RuleModule为基础的RuleModule数组到RuleModule
  * @since 0.2.0
  */
-export const foldRuleModule = <R extends AnyRule = AnyRule>() =>
-    <N extends AnyRule>(as: NonEmptyArray<RuleModule<AnyRule, N>>): RuleModule<R, N> => {
-        const folds = getFold()(as)
-        return {
-            rule: folds.rule,
-            theme: folds.theme,
-            next: as[0].next
-        }
+export const foldRuleModule: ExtendRuleModules = n => as => {
+    const folds = getFold()(as)
+    return {
+        rule: folds.rule,
+        theme: folds.theme,
+        next: n
     }
+}
 /**
  * Parse RuleModule to ThemeNode
  * @desczh
@@ -199,9 +281,14 @@ export const foldRuleModule = <R extends AnyRule = AnyRule>() =>
  * @since 0.2.0
  */
 export interface ParseRule {
-    <R extends AnyRule = AnyRule>(input: RuleModule<R>):
-        (value: ThemeNode<Input<GetRuleInput<R>, GetRuleOutput<R>>, GetRuleTheme<R>>)
-            => ThemeNode<GetRuleOutput<R>, GetRuleTheme<R>>
+    <
+        S extends object,
+        E extends object,
+        O extends object,
+        T extends object,
+        OT extends object>(rules: RuleModule<S, E, O, T, OT>):
+        (value: ThemeNode<O & S & E, OT & T>)
+            => ThemeNode<O, OT & T>
 }
 /**
  * 
@@ -235,8 +322,13 @@ export const parseRule: ParseRule = ({ rule, theme = {}, next }) => (value) => {
  * @since 0.2.0
  */
 export type ParseProp =
-    <R extends AnyRule>(rules: RuleModule<R>) =>
-        (value: CssThemeNode<GetRuleProp<R>, GetRuleTheme<R>>) => GetRuleOutput<R>
+    <
+        S extends object,
+        E extends object,
+        O extends object,
+        T extends object,
+        OT extends object>(rules: RuleModule<S, E, O, T, OT>) =>
+        (value: CssThemeNode<O & S & E, OT & T>) => O
 
 /**
  * 
@@ -258,8 +350,13 @@ export const parseProp: ParseProp = rule => value => pipe(
  * @since 0.2.0
  */
 export type ParseString =
-    <R extends AnyRule>(rules: RuleModule<R>) =>
-        (value: CssThemeNode<Input<GetRuleInput<R>, GetRuleOutput<R>>, GetRuleTheme<R>>) => string
+    <
+        S extends object,
+        E extends object,
+        O extends object,
+        T extends object,
+        OT extends object>(rules: RuleModule<S, E, O, T, OT>) =>
+        (value: CssThemeNode<O & S & E, OT & T>) => string
 
 /**
  * 

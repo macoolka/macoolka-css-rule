@@ -404,18 +404,22 @@ describe('FunctionRule', () => {
         }
         type Theme = {
             color: string
+            width: number
         }
         const ruleA: StandRule<Input, OutPut, Theme> = {
             A: ({ value, theme }) => {
-                return ({ width: value + 1, color: theme.color })
+                return ({ width: theme.width + value + 1, color: theme.color })
             },
             B: ({ value, theme }) => {
                 return ({ width: value + 2 })
             },
         };
-        const parseRule1 = parse({ color: 'red' })(ruleA);
+        const parseRule1 = parse<Theme>({ color: 'red', width: 5 })(ruleA);
         expect(parseRule1(cssThemeNodeToThemeNode({ A: 1 })).data).toEqual({
-            '': { color: 'red', "width": 2 },
+            '': { color: 'red', "width": 7 },
+        })
+        expect(parseRule1(cssThemeNodeToThemeNode<Input & OutPut, Theme>({ A: 1, theme: { width: 1 } })).data).toEqual({
+            '': { color: 'red', "width": 3 },
         })
     })
 

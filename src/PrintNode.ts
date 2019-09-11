@@ -7,10 +7,12 @@ import { toPairs, omit } from 'macoolka-object';
 import { hyphenate } from 'macoolka-string';
 import { fromNullable } from 'fp-ts/lib/Option';
 import * as O from 'fp-ts/lib/Option';
-import { monoidString,fold } from 'fp-ts/lib/Monoid';
+import { monoidString, fold } from 'fp-ts/lib/Monoid';
 import { pipe } from 'fp-ts/lib/pipeable';
-import {format} from 'macoolka-prettier'
-import {CssNode} from './CssNode'
+import { format } from 'macoolka-prettier'
+import { CssNode } from './CssNode'
+import { omitBy } from 'macoolka-object';
+import { isFunction } from 'macoolka-predicate';
 /**
  * The Print Css Node
  * @desczh
@@ -75,7 +77,7 @@ export const cssNodeToPrintNode = <T extends object>(a: CssNode<T>): PrintNode<T
 }
 const CRLF = '\n';
 const SPACE = ' ';
-const indent=(i:number)=>{
+const indent = (i: number) => {
     return new Array(i).join(`  `)
 }
 
@@ -99,18 +101,18 @@ const printSelector = (i: number) =>
 const printMedia = (i: number) =>
     <T extends object>(a: [string, [string, T][]][]): string => a.map(printMediaNode(i)).join(CRLF);
 const printNode = (i: number) => <T extends object>(node: PrintNode<T>) => {
-  
-    const properties=printProperties(i)(omit(node, ['selector', 'media']));
-    const selector=pipe(
+
+    const properties = printProperties(i)(omit(node, ['selector', 'media']));
+    const selector = pipe(
         fromNullable(node.selector),
-       
+
         O.map(a => `${CRLF}${printSelector(i)(a)}`),
-        O.getOrElse(()=>'')
+        O.getOrElse(() => '')
     )
-    const media=pipe(
+    const media = pipe(
         fromNullable(node.media),
         O.map(a => `${CRLF}${printMedia(i)(a)}`),
-        O.getOrElse(()=>'')
+        O.getOrElse(() => '')
     )
     /*      const prop= omit(node,'selector');
          const selector=node.selector;
@@ -118,18 +120,23 @@ const printNode = (i: number) => <T extends object>(node: PrintNode<T>) => {
          printProperties(i)(prop):printProperties(i+1)({[`${selector}`]:prop}) */
     // result+=printProperties(i)(propC):`${CRLF}${printSelector(i)(selector)}`
 
-   /*  return `${}${fromNullable(node.selector).
-        map(a => `${CRLF}${printSelector(i)(a)}`).getOrElse('')}${fromNullable(node.media).
-            map(a => `${CRLF}${printMedia(i)(a)}`).getOrElse('')}`; */
-    const content=fold(monoidString)([properties,selector,media]);
-    
-    return format({parser:'css', content});
+    /*  return `${}${fromNullable(node.selector).
+         map(a => `${CRLF}${printSelector(i)(a)}`).getOrElse('')}${fromNullable(node.media).
+             map(a => `${CRLF}${printMedia(i)(a)}`).getOrElse('')}`; */
+    const content = fold(monoidString)([properties, selector, media]);
+
+    return format({ parser: 'css', content });
     /*    return `${printProperties(i)(lensA.props.get(node))}${lensA.selector.getOption(node).
         map(a => `${CRLF}${printSelector(i)(a)}`).getOrElse('')}`; */
 };
 
 // export const printCss = (i: number = 0) => (css: CommonCss) => toPairs(css).map(printCssNode(i)).join(CRLF);
-const _printNodeToString = <T extends object>(i: number = 0) =>(a:PrintNode<T>):string=> printNode(i)(a);
+const _printNodeToString = <T extends object>(i: number = 0) => (a: PrintNode<T>): string =>
+    pipe(
+        omitBy(a, a => isFunction(a)),
+        printNode(i)
+    )
+
 /**
  * PrintNode to string
  * @desczh

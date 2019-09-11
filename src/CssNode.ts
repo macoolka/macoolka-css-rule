@@ -7,7 +7,7 @@ import { pipe } from 'fp-ts/lib/pipeable';
 import { fold as _fold } from 'fp-ts/lib/Monoid';
 import { isEmpty } from 'macoolka-predicate';
 export { map, mapWithIndex, record, reduce, reduceRight, reduceWithIndex, reduceRightWithIndex } from 'fp-ts/lib/Record'
-import {Node,ThemeNode,CssTheme,CssProperties} from './Node'
+import {Node,ThemeNode,CssTheme,CssProperties,PartialAll} from './Node'
 
 
 
@@ -49,7 +49,7 @@ export type CssNode<T extends CssProperties> = T & {
  * CssNode中加theme属性
  * @since 0.2.0
  */
-export type CssThemeNode<P extends CssProperties, T extends CssTheme> = CssNode<P> & { theme?: T };
+export type CssThemeNode<P extends CssProperties, T extends CssTheme> = CssNode<P> & { theme?: PartialAll<T> };
 
 
 /**
@@ -96,7 +96,8 @@ export const cssNodeToNode = <T extends CssProperties>(a: CssNode<T>): Node<T> =
  * @since 0.2.0
  */
 
-export const cssThemeNodeToThemeNode = <P extends CssProperties, T extends CssTheme>(a: CssThemeNode<P, T>): ThemeNode<P, T> => ({
+export const cssThemeNodeToThemeNode = <P extends CssProperties, T extends CssTheme>
+(a: CssThemeNode<P, T>): ThemeNode<P, T> => ({
     theme: a.theme,
     data: cssNodeToNode(omit(a, 'theme') as any)
 })

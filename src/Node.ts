@@ -73,7 +73,9 @@ export const chainNode = <B extends CssProperties>(m: Monoid<Node<B>> = getMonoi
         };
 
 
-
+export type PartialAll<T> = {
+    [P in keyof T]?: Partial<T[P]>;
+};
 
 /**
  * The Type contains Node and Theme
@@ -81,7 +83,7 @@ export const chainNode = <B extends CssProperties>(m: Monoid<Node<B>> = getMonoi
  * 包含Node和Theme
  * @since 0.2.0
  */
-export type ThemeNode<O extends CssProperties, T extends CssTheme> = { data: Node<O>, theme?: T };
+export type ThemeNode<O extends CssProperties, T extends CssTheme> = { data: Node<O>, theme?: PartialAll<T> };
 
 
 
